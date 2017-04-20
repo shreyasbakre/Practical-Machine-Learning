@@ -1,0 +1,98 @@
+---
+title: "Practical Machine Learning Course Project"
+author: "Shreyas Bakre"
+date: "April 18, 2017"
+output: html_document
+---
+
+## Background
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways:
+
+- Class A: exactly according to the specification (proper execution)
+- Class B: throwing the elbows to the front (common mistake)
+- Class C: lifting the dumbbell only halfway (common mistake)
+- Class D: lowering the dumbbell only halfway (common mistake)
+- Class F: Throwing the hips to the front (common mistake)
+
+Three models were compared:
+
+- Decision Trees 
+- Stochastic Gradient Boosting 
+- Random Forests Code 
+Model summary can be found in at the last. In summary, random forests was selected as it indicated hightest accuracy. 
+
+## Load the required packages
+```{r eval=TRUE, message=FALSE, warning=FALSE}
+library(caret)
+library(rpart)
+library(randomForest)
+library(gbm)
+library(e1071)
+```
+## Getting data
+```{r eval=TRUE}
+setwd("D:/data science/program/practical ML")
+#read training and testing dataset
+training_original=read.csv("pml-training.csv",header = TRUE,na.strings=c("NA","#DIV/0!",""))
+testing_original=read.csv("pml-testing.csv",header = TRUE,na.strings=c("NA","#DIV/0!",""))
+```
+## Cleaning data
+```{r eval=TRUE}
+# remove variables that includes NA
+training <- training_original[,(colSums(is.na(training_original)) == 0)]
+testing <- testing_original[,(colSums(is.na(testing_original)) == 0)]
+# remove variables with Nearly Zero Variance
+NZV <- nearZeroVar(training)
+training <- training[, -NZV]
+testing  <- testing[, -NZV]
+# remove identification only variables (columns 1 to 7)
+training <- training[, -(1:7)]
+testing  <- testing[, -(1:7)]
+```
+## Partitioned training dataset into traiing and validation set
+```{r eval=TRUE}
+inTrain  <- createDataPartition(training$classe, p=0.7, list=FALSE)
+ValSet  <- training[-inTrain, ]
+TrainSet <- training[inTrain, ]
+dim(ValSet)
+dim(TrainSet)
+```
+## Fitting the random forest model using train data with k=3 cross validation
+```{r eval=TRUE}
+set.seed(12345)
+cross_val<- trainControl(method="cv", number=3, verboseIter=F)
+classifier1 <- train(classe ~ ., data=TrainSet, method="rf", trControl=cross_val, ntree=100)
+```
+## Predict the class for validation data with random forest model
+```{r eval=TRUE}
+predictions1<- predict(classifier1, newdata=ValSet[,-52])
+confusionMatrix(ValSet$classe,predictions1)
+```
+## Fitting the Decision tree model using train data with k=3 cross validation
+```{r eval=TRUE}
+set.seed(12345)
+cross_val<- trainControl(method="cv", number=3, verboseIter=F)
+classifier2 <- train(classe ~ ., data=TrainSet, method="rpart", trControl=cross_val)
+```
+## Predict the class for validation data with Decision tree model
+```{r eval=TRUE}
+predictions2<- predict(classifier2, newdata=ValSet[,-52])
+confusionMatrix(ValSet$classe,predictions2)
+```
+## Fitting the gradient boosting model using train data with k=3 cross validation
+```{r eval=TRUE, message=FALSE, warning=FALSE}
+set.seed(12345)
+cross_val<- trainControl(method="cv", number=3, verboseIter=F)
+classifier3 <- train(classe ~ ., data=TrainSet, method="gbm", trControl=cross_val)
+```
+## Predict the class for validation data with gradient boosting model
+```{r eval=TRUE}
+predictions3<- predict(classifier3, newdata=ValSet[,-52])
+confusionMatrix(ValSet$classe,predictions3)
+```
+Developing the prediction model using training data and the random forest method indicated high accuracy.
+
+## Predictions on 20 test case by using Random forest model
+```{r eval=TRUE}
+predict(classifier1,newdata= testing[,-52])
+```
