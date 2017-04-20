@@ -1,1 +1,1 @@
-# Practical-Machine-Learnng
+# Practical-Machine-Learning
